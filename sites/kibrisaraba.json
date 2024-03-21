@@ -1,0 +1,52 @@
+{
+  "url": "https://www.kibrisaraba.com/",
+  "search": {
+    "fields": [
+      {
+        "by": "class",
+        "name": "arama_kategori",
+        "value": "otomobil",
+        "type": "select"
+      },
+      {
+        "by": "class",
+        "name": "otomobil_select_marka",
+        "value": "nissan/",
+        "type": "select"
+      },
+      {
+        "by": "class",
+        "name": "otomobil_select_model",
+        "value": "march/",
+        "type": "select"
+      }
+    ],
+    "action": {
+      "type": "button",
+      "by": "class",
+      "name": "arama_btn_otomobil"
+    }
+  },
+  "check": {
+    "page": {
+      "until": 0
+    },
+    "find": {
+      "by": "css-selector",
+      "name": "div.grid_content div.ilan"
+    },
+    "elements": [
+      {
+        "log": "price",
+        "by": "css-selector",
+        "name": "ilan-detay:nth-child(4)"
+      },
+      {
+        "log": "year",
+        "by": "css-selector",
+        "name": "ilan-detay:nth-child(3)",
+        "getter": "lambda str: str.split('/')[0]"
+      }
+    ]
+  }
+}
