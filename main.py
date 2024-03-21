@@ -1,6 +1,7 @@
 import os
 import sys
 from dotenv import load_dotenv
+from src.driver.driver import Driver
 
 
 class Application:
@@ -16,7 +17,8 @@ class Application:
 
     @staticmethod
     def run():
-        print('Initialized')
+        driver = Driver()
+        driver.search()
 
 
 if __name__ == '__main__':
