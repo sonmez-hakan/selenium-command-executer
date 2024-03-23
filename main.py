@@ -1,10 +1,10 @@
 import os
 import sys
 from dotenv import load_dotenv
-from src.driver.driver import Driver
+from src.application import Application
 
 
-class Application:
+class Bootstrap:
     @staticmethod
     def load():
         if getattr(sys, 'frozen', False):
@@ -15,12 +15,8 @@ class Application:
         os.chdir(application_path)
         load_dotenv()
 
-    @staticmethod
-    def run():
-        driver = Driver()
-        driver.search()
-
 
 if __name__ == '__main__':
-    Application.load()
-    Application.run()
+    Bootstrap.load()
+    app = Application()
+    app.run()
