@@ -1,52 +1,104 @@
 {
-  "url": "https://www.kktcarabam.com/",
-  "search": {
-    "fields": [
-      {
-        "by": "class",
-        "name": "arama_kategori",
-        "value": "otomobil",
-        "type": "select"
-      },
-      {
-        "by": "class",
-        "name": "otomobil_select_marka",
-        "value": "nissan/",
-        "type": "select"
-      },
-      {
-        "by": "class",
-        "name": "otomobil_select_model",
-        "value": "march/",
-        "type": "select"
+  "commands": [
+    {
+      "type": "open",
+      "args": {
+        "url": "https://www.kktcarabam.com/"
       }
-    ],
-    "action": {
-      "type": "button",
-      "by": "class",
-      "name": "arama_btn_otomobil"
+    },
+    {
+      "type": "wait",
+      "args": {
+        "by": "id",
+        "name": "ikinci_el_1"
+      }
+    },
+    {
+      "type": "form",
+      "args": {
+        "inputs": [
+          {
+            "by": "id",
+            "name": "ikinci_el_1",
+            "value": "Otomobil",
+            "type": "select",
+            "setter": "text"
+          },
+          {
+            "by": "id",
+            "name": "ikinci_el_2",
+            "value": "Nissan",
+            "type": "select",
+            "setter": "text",
+            "waits": [
+              "wait_until_text"
+            ]
+          },
+          {
+            "by": "id",
+            "name": "ikinci_el_3",
+            "value": "March",
+            "type": "select",
+            "setter": "text",
+            "waits": [
+              "wait_until_text"
+            ]
+          }
+        ],
+        "submit": {
+          "by": "css-selector",
+          "name": "#ikinci_el > form > div > div:nth-child(4) > button"
+        }
+      }
+    },
+    {
+      "type": "wait",
+      "args": {
+        "by": "css-selector",
+        "name": "div.table-responsive table.table tbody tr"
+      }
+    },
+    {
+      "type": "data",
+      "args": {
+        "pagination": {
+          "until": 0,
+          "links": {
+            "parent": {
+              "by": "css-selector",
+              "name": "ul.pagination"
+            },
+            "find": {
+              "by": "link-text",
+              "text": "{{page}}"
+            }
+          }
+        },
+        "find": {
+          "by": "css-selector",
+          "name": "div.table-responsive table.table tbody tr"
+        },
+        "file": {
+          "name": "kktcarabam"
+        },
+        "logs": [
+          {
+            "log": "year",
+            "by": "css-selector",
+            "name": "td:nth-child(3)"
+          },
+          {
+            "log": "kilometer",
+            "by": "css-selector",
+            "name": "td:nth-child(6)"
+          },
+          {
+            "log": "price",
+            "by": "css-selector",
+            "name": "td:last-child div.fiyat"
+          }
+        ]
+      }
     }
-  },
-  "check": {
-    "page": {
-      "until": 0
-    },
-    "find": {
-      "by": "css-selector",
-      "name": "div.grid_content div.ilan"
-    },
-    "elements": [
-      {
-        "log": "price",
-        "by": "css-selector",
-        "name": "ilan-detay:nth-child(4)"
-      },
-      {
-        "log": "year",
-        "by": "css-selector",
-        "name": "ilan-detay:nth-child(3)",
-        "getter": "lambda str: str.split('/')[0]"
-      }
-    ]
-  }
+  ]
 }
