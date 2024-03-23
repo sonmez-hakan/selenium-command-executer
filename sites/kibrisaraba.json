@@ -1,52 +1,110 @@
 {
-  "url": "https://www.kibrisaraba.com/",
-  "search": {
-    "fields": [
-      {
-        "by": "class",
-        "name": "arama_kategori",
-        "value": "otomobil",
-        "type": "select"
-      },
-      {
-        "by": "class",
-        "name": "otomobil_select_marka",
-        "value": "nissan/",
-        "type": "select"
-      },
-      {
-        "by": "class",
-        "name": "otomobil_select_model",
-        "value": "march/",
-        "type": "select"
+  "commands": [
+    {
+      "type": "open",
+      "args": {
+        "url": "https://kibrisaraba.com/"
       }
-    ],
-    "action": {
-      "type": "button",
-      "by": "class",
-      "name": "arama_btn_otomobil"
+    },
+    {
+      "type": "wait",
+      "args": {
+        "by": "class",
+        "name": "arama_kategori"
+      }
+    },
+    {
+      "type": "form",
+      "args": {
+        "inputs": [
+          {
+            "by": "class",
+            "name": "arama_kategori",
+            "value": "otomobil",
+            "type": "select"
+          },
+          {
+            "by": "class",
+            "name": "otomobil_select_marka",
+            "value": "nissan/",
+            "type": "select",
+            "waits": [
+              "wait_until_exists",
+              "wait_until_value"
+            ]
+          },
+          {
+            "by": "class",
+            "name": "otomobil_select_model",
+            "value": "march/",
+            "type": "select",
+            "waits": [
+              "wait_until_exists",
+              "wait_until_value"
+            ]
+          }
+        ],
+        "submit": {
+          "type": "button",
+          "by": "class",
+          "name": "arama_btn_otomobil"
+        }
+      }
+    },
+    {
+      "type": "wait",
+      "args": {
+        "by": "css-selector",
+        "name": "div.grid_content div.ilan"
+      }
+    },
+    {
+      "type": "data",
+      "args": {
+        "pagination": {
+          "until": 0,
+          "links": {
+            "parent": {
+              "by": "css-selector",
+              "name": "div.item_container > div:nth-child(2)"
+            },
+            "find": {
+              "by": "link-text",
+              "text": "{{page}}",
+              "click": "lambda element: element.child('css-selector', 'div').click()"
+            }
+          }
+        },
+        "find": {
+          "by": "css-selector",
+          "name": "div.grid_content div.ilan"
+        },
+        "file": {
+          "name": "kibrisaraba"
+        },
+        "logs": [
+          {
+            "log": "price",
+            "by": "xpath",
+            "name": ".//div[contains(@class, 'ilan_detay')]/div[contains(@class, 'ilan_fiyat')]"
+          },
+          {
+            "log": "data",
+            "by": "css-selector",
+            "name": "a .ilan_yil",
+            "data": [
+              {
+                "log": "year",
+                "getter": "lambda str: str.split('/')[0]"
+              },
+              {
+                "log": "kilometre",
+                "getter": "lambda str: str.split('/')[1]"
+              }
+            ]
+          }
+        ]
+      }
     }
-  },
-  "check": {
-    "page": {
-      "until": 0
-    },
-    "find": {
-      "by": "css-selector",
-      "name": "div.grid_content div.ilan"
-    },
-    "elements": [
-      {
-        "log": "price",
-        "by": "css-selector",
-        "name": "ilan-detay:nth-child(4)"
-      },
-      {
-        "log": "year",
-        "by": "css-selector",
-        "name": "ilan-detay:nth-child(3)",
-        "getter": "lambda str: str.split('/')[0]"
-      }
-    ]
-  }
+  ]
 }
