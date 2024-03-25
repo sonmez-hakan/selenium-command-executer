@@ -13,6 +13,7 @@ from src.driver.methods import option_value_in_select, option_text_in_select, JS
 
 SELECT = 'select'
 INPUT = 'input'
+FILE = 'file'
 TEXT = 'text'
 TIMEOUT: int = os.environ.get('TIMEOUT', 10)
 
@@ -140,6 +141,13 @@ class HtmlInput(HtmlElement):
         return self
 
 
+class HTMLFileInput(HtmlInput):
+    def _value_to_set(self, value: str | None = None) -> str | None:
+        value = value if value is not None else self.value
+
+        return f'{os.getcwd()}/{value}'
+
+
 @dataclass
 class HtmlSelect(HtmlInput):
     setter: str = 'value'
@@ -204,10 +212,18 @@ class HtmlSelect(HtmlInput):
 class HtmlElementFactory:
     @staticmethod
     def input(driver: WebDriver, data: dict) -> HtmlInput | HtmlSelect:
-        if 'type' in data and data.get('type').lower() == SELECT:
+        input_type = data.get('type', 'input').lower()
+
+        if input_type == SELECT:
             return HtmlSelect(driver, data.get('by'), data.get('name'), data.get('value'), data.get('setter', 'value'))
 
-        return HtmlInput(data.get('by'), data.get('name'), data.get('value'))
+        if input_type == FILE:
+            return HTMLFileInput(driver, data.get('by'), data.get('name'), data.get('value'))
+
+        if input_type == INPUT:
+            return HtmlInput(driver, data.get('by'), data.get('name'), data.get('value'))
+
+        raise InvalidInputTypeException(f'{input_type} get but expected {SELECT}, {FILE} or {INPUT}')
 
     @staticmethod
     def element(driver: WebDriver, data: dict) -> HtmlElement:
@@ -230,3 +246,7 @@ class HtmlElementFactory:
                 html_elements.append(HtmlElement(driver, 'css-selector', '').set_element(element))
 
         return html_elements
+
+
+class InvalidInputTypeException(Exception):
+    pass
