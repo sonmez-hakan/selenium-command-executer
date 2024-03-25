@@ -8,7 +8,7 @@ class Sites:
         path = f"{os.getcwd()}/sites"
         for element in os.listdir(path):
             file_name = os.path.join(path, element)
-            if os.path.isfile(file_name) and element.split('.')[0] != 'disabled':
+            if os.path.isfile(file_name) and element[0] != '.':
                 file = open(file_name, 'r')
                 yield json.loads(file.read())
 
