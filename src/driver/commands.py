@@ -1,9 +1,11 @@
 import csv
 import os
+import time
 from abc import ABC, abstractmethod
 from selenium.webdriver.chrome.webdriver import WebDriver
 from .methods import wait_for_element
 from .html_elements import HtmlElement, HtmlElementFactory, ByMapper
+from src.utils.url import Url
 
 PATH = os.environ.get('REPORTS_PATH', 'reports')
 
@@ -19,7 +21,20 @@ class Command(ABC):
 
 class OpenCommand(Command):
     def run(self, *args, **kwargs):
-        self.driver.get(kwargs.get('url'))
+        self.driver.get(Url(kwargs.get('url'), kwargs.get('type', 'web')).get())
+
+
+class RefreshUntilElementAppearsCommand(Command):
+    def run(self, *args, **kwargs):
+        url = Url(kwargs.get('url', self.driver.current_url), kwargs.get('type', 'web')).get()
+        by = kwargs.get('by')
+        name = kwargs.get('name')
+        refresh_time = kwargs.get('refresh_time')
+        element = HtmlElement(self.driver, by, name)
+
+        while element.exists():
+            self.driver.get(url)
+            time.sleep(refresh_time)
 
 
 class WaitCommand(Command):
@@ -34,14 +49,15 @@ class ClickCommand(Command):
 
 class FormCommand(Command):
     def run(self, *args, **kwargs):
-        inputs: dict = kwargs.get('inputs')
-        submit: dict = kwargs.get('submit')
+        inputs: dict = kwargs.get('inputs', [])
+        submit: dict = kwargs.get('submit', None)
         for html_input in inputs:
             element = HtmlElementFactory.input(self.driver, html_input)
             element.wait(html_input.get('waits', []))
             element.set()
 
-        HtmlElementFactory.element(self.driver, submit).click()
+        if submit is not None:
+            HtmlElementFactory.element(self.driver, submit).click()
 
 
 class DataCommand(Command):
@@ -140,6 +156,9 @@ class CommandFactory:
         command_type = command_type.lower()
         if command_type == 'open':
             return OpenCommand(driver)
+
+        if command_type == 'refresh_until_element_appears':
+            return RefreshUntilElementAppearsCommand(driver)
 
         if command_type == 'wait':
             return WaitCommand(driver)
