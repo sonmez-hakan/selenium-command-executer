@@ -1,4 +1,15 @@
 {
+  "driver": {
+    "browser": {
+      "name": "chrome"
+    },
+    "key": "kibrisaraba",
+    "quit": true,
+    "size": {
+      "width": 1200,
+      "height": 1500
+    }
+  },
   "commands": [
     {
       "type": "open",
@@ -52,17 +63,10 @@
       }
     },
     {
-      "type": "wait",
-      "args": {
-        "by": "css-selector",
-        "name": "div.table-responsive table.table tbody tr"
-      }
-    },
-    {
       "type": "data",
       "args": {
         "pagination": {
-          "until": 5,
+          "until": 2,
           "links": {
             "parent": {
               "by": "css-selector",

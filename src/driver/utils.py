@@ -1,5 +1,6 @@
+import json
 import os
-
+from src.utils import staticclass
 
 class Url:
     def __init__(self, url: str, url_type: str | None = 'web'):
@@ -23,3 +24,15 @@ class _File:
 
     def get(self) -> str:
         return self.url
+
+@staticclass
+class Reader:
+    @staticmethod
+    def read():
+        path = f"{os.getcwd()}/sites"
+        for element in os.listdir(path):
+            file_name = os.path.join(path, element)
+            if os.path.isfile(file_name) and element[0] != '.':
+                file = open(file_name, 'r')
+                yield json.loads(file.read())
+

@@ -52,7 +52,7 @@ class HtmlElement:
 
     def __post_init__(self):
         self.by = ByMapper.transform(self.by)
-        self.driver = Driver.get()
+        self.driver = Driver().get()
 
     def locator(self) -> Tuple[str, str]:
         return self.by, self.name
@@ -232,7 +232,7 @@ class HtmlElementFactory:
 
     @staticmethod
     def find(by: str, name: str) -> list[HtmlElement]:
-        return HtmlElementFactory.convert(Driver.get().find_elements(ByMapper().transform(by), name))
+        return HtmlElementFactory.convert(Driver().get().find_elements(ByMapper().transform(by), name))
 
     @staticmethod
     def convert(elements: list) -> list[HtmlElement]:
