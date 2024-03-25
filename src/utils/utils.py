@@ -17,6 +17,16 @@ def singleton(cls):
     return getinstance
 
 
+def staticclass(cls):
+    def new_init_blocked(*args, **kwargs):
+        raise TypeError(f"{cls.__name__} is a static class and can not be instanced")
+
+    setattr(cls, "__new__", staticmethod(new_init_blocked))
+    setattr(cls, "__init__", staticmethod(new_init_blocked))
+
+    return cls
+
+
 def to_json(obj):
     return json.dumps(obj, cls=Serializer)
 

@@ -8,8 +8,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-
-from src.driver.methods import option_value_in_select, option_text_in_select, JS_BUILD_CSS_SELECTOR
+from .driver import Driver
+from .methods import option_value_in_select, option_text_in_select, JS_BUILD_CSS_SELECTOR
 
 SELECT = 'select'
 INPUT = 'input'
@@ -46,12 +46,13 @@ class ByMapper:
 @dataclass
 class HtmlElement:
     element: WebElement | Select = field(init=False, default=None)
-    driver: WebDriver
+    driver: WebDriver = field(init=False, default=None)
     by: str
     name: str
 
     def __post_init__(self):
         self.by = ByMapper.transform(self.by)
+        self.driver = Driver.get()
 
     def locator(self) -> Tuple[str, str]:
         return self.by, self.name
@@ -103,15 +104,15 @@ class HtmlElement:
         return self
 
     def child(self, by: str, name: str) -> Self:
-        return HtmlElement(self.driver, 'css-selector', '').set_element(
+        return HtmlElement('css-selector', '').set_element(
             self.find().find_element(ByMapper.transform(by), name)
         )
 
     def children(self, by: str, name: str) -> list[Self]:
-        return HtmlElementFactory.convert(self.driver, self.find().find_elements(ByMapper.transform(by), name))
+        return HtmlElementFactory.convert(self.find().find_elements(ByMapper.transform(by), name))
 
     def parent(self) -> Self:
-        return HtmlElement(self.driver, 'css-selector', '').set_element(
+        return HtmlElement('css-selector', '').set_element(
             self.find().find_element(By.XPATH, '..')
         )
 
@@ -211,39 +212,39 @@ class HtmlSelect(HtmlInput):
 
 class HtmlElementFactory:
     @staticmethod
-    def input(driver: WebDriver, data: dict) -> HtmlInput | HtmlSelect:
+    def input(data: dict) -> HtmlInput | HtmlSelect:
         input_type = data.get('type', 'input').lower()
 
         if input_type == SELECT:
-            return HtmlSelect(driver, data.get('by'), data.get('name'), data.get('value'), data.get('setter', 'value'))
+            return HtmlSelect(data.get('by'), data.get('name'), data.get('value'), data.get('setter', 'value'))
 
         if input_type == FILE:
-            return HTMLFileInput(driver, data.get('by'), data.get('name'), data.get('value'))
+            return HTMLFileInput(data.get('by'), data.get('name'), data.get('value'))
 
         if input_type == INPUT:
-            return HtmlInput(driver, data.get('by'), data.get('name'), data.get('value'))
+            return HtmlInput(data.get('by'), data.get('name'), data.get('value'))
 
         raise InvalidInputTypeException(f'{input_type} get but expected {SELECT}, {FILE} or {INPUT}')
 
     @staticmethod
-    def element(driver: WebDriver, data: dict) -> HtmlElement:
-        return HtmlElement(driver, data.get('by'), data.get('name'))
+    def element(data: dict) -> HtmlElement:
+        return HtmlElement(data.get('by'), data.get('name'))
 
     @staticmethod
-    def find(driver: WebDriver, by: str, name: str) -> list[HtmlElement]:
-        return HtmlElementFactory.convert(driver, driver.find_elements(ByMapper().transform(by), name))
+    def find(by: str, name: str) -> list[HtmlElement]:
+        return HtmlElementFactory.convert(Driver.get().find_elements(ByMapper().transform(by), name))
 
     @staticmethod
-    def convert(driver: WebDriver, elements: list) -> list[HtmlElement]:
+    def convert(elements: list) -> list[HtmlElement]:
         html_elements = []
         for element in elements:
             tag_name = element.tag_name.lower()
             if tag_name == SELECT:
-                html_elements.append(HtmlSelect(driver, 'css-selector', '').set_element(Select(element)))
+                html_elements.append(HtmlSelect('css-selector', '').set_element(Select(element)))
             elif tag_name == INPUT:
-                html_elements.append(HtmlInput(driver, 'css-selector', '').set_element(element))
+                html_elements.append(HtmlInput('css-selector', '').set_element(element))
             else:
-                html_elements.append(HtmlElement(driver, 'css-selector', '').set_element(element))
+                html_elements.append(HtmlElement('css-selector', '').set_element(element))
 
         return html_elements
 

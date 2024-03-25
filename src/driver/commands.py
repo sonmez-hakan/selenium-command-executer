@@ -2,18 +2,15 @@ import csv
 import os
 import time
 from abc import ABC, abstractmethod
-from selenium.webdriver.chrome.webdriver import WebDriver
 from .methods import wait_for_element
 from .html_elements import HtmlElement, HtmlElementFactory, ByMapper
+from .driver import Driver
 from src.utils.url import Url
 
 PATH = os.environ.get('REPORTS_PATH', 'reports')
 
 
 class Command(ABC):
-    def __init__(self, driver: WebDriver):
-        self.driver: WebDriver = driver
-
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
@@ -21,30 +18,31 @@ class Command(ABC):
 
 class OpenCommand(Command):
     def run(self, *args, **kwargs):
-        self.driver.get(Url(kwargs.get('url'), kwargs.get('type', 'web')).get())
+        Driver.get().get(Url(kwargs.get('url'), kwargs.get('type', 'web')).get())
 
 
 class RefreshUntilElementAppearsCommand(Command):
     def run(self, *args, **kwargs):
-        url = Url(kwargs.get('url', self.driver.current_url), kwargs.get('type', 'web')).get()
+        driver = Driver.get()
+        url = Url(kwargs.get('url', driver.current_url), kwargs.get('type', 'web')).get()
         by = kwargs.get('by')
         name = kwargs.get('name')
         refresh_time = kwargs.get('refresh_time')
-        element = HtmlElement(self.driver, by, name)
+        element = HtmlElement(by, name)
 
         while element.exists():
-            self.driver.get(url)
+            driver.get(url)
             time.sleep(refresh_time)
 
 
 class WaitCommand(Command):
     def run(self, *args, **kwargs):
-        wait_for_element(self.driver, ByMapper.transform(kwargs.get('by')), kwargs.get('name'))
+        wait_for_element(ByMapper.transform(kwargs.get('by')), kwargs.get('name'))
 
 
 class ClickCommand(Command):
     def run(self, *args, **kwargs):
-        HtmlElementFactory.element(self.driver, kwargs.get('find')).click()
+        HtmlElementFactory.element(kwargs.get('find')).click()
 
 
 class FormCommand(Command):
@@ -52,12 +50,12 @@ class FormCommand(Command):
         inputs: dict = kwargs.get('inputs', [])
         submit: dict = kwargs.get('submit', None)
         for html_input in inputs:
-            element = HtmlElementFactory.input(self.driver, html_input)
+            element = HtmlElementFactory.input(html_input)
             element.wait(html_input.get('waits', []))
             element.set()
 
         if submit is not None:
-            HtmlElementFactory.element(self.driver, submit).click()
+            HtmlElementFactory.element(submit).click()
 
 
 class DataCommand(Command):
@@ -70,7 +68,7 @@ class DataCommand(Command):
         records = []
         try:
             while True:
-                elements = HtmlElementFactory.find(self.driver, find.get('by'), find.get('name'))
+                elements = HtmlElementFactory.find(find.get('by'), find.get('name'))
                 if len(elements) == 0:
                     break
 
@@ -80,17 +78,17 @@ class DataCommand(Command):
                         child = element.child(log.get('by'), log.get('name'))
                         if "data" in log:
                             for data in log.get('data'):
-                                DataCommand._get_data(child, data, record)
+                                self._get_data(child, data, record)
                         else:
-                            DataCommand._get_data(child, log, record)
+                            self._get_data(child, log, record)
                     records.append(record)
 
                 page += 1
                 self._page_forward(pagination, page)
-        except (SameUrlException, PageNotFound, PageLimitExceeded) as e:
+        except (SameUrlException, PageNotFound, PageLimitExceeded):
             pass
 
-        DataCommand._write_report(records, kwargs.get('file'))
+        self._write_report(records, kwargs.get('file'))
 
     @staticmethod
     def _get_data(child: HtmlElement, log: dict, record: dict):
@@ -100,7 +98,7 @@ class DataCommand(Command):
             func = eval(log.get('getter'))
             try:
                 record[record_name] = func(value)
-            except:
+            except Exception:
                 record[record_name] = ''
         else:
             record[record_name] = value
@@ -111,23 +109,25 @@ class DataCommand(Command):
 
         return func(url, page)
 
-    def _page_forward(self, pagination: dict, page: int):
+    @staticmethod
+    def _page_forward(pagination: dict, page: int):
         until: int = pagination.get('until')
         if 0 < until < page:
             raise PageLimitExceeded(f'The allowed number of pages has been exceeded. {page}')
 
-        url = self.driver.current_url
+        driver = Driver.get()
+        url = driver.current_url
         if "link" in pagination:
-            self.driver.get(DataCommand._get_url(url, page, pagination.get('link')))
+            driver.get(DataCommand._get_url(url, page, pagination.get('link')))
         else:
             links = pagination.get('links')
             parent = links.get("parent")
             find = links.get("find")
             try:
-                element = HtmlElement(self.driver, parent.get('by'), parent.get('name')).child(
+                element = HtmlElement(parent.get('by'), parent.get('name')).child(
                     find.get('by'), find.get('text').replace('{{page}}', str(page))
                 )
-            except:
+            except Exception:
                 raise PageNotFound(f'{page} not found')
 
             if "click" in find:
@@ -136,7 +136,7 @@ class DataCommand(Command):
             else:
                 element.click()
 
-        if url == self.driver.current_url:
+        if url == driver.current_url:
             raise SameUrlException("After changing url returned the same")
 
     @staticmethod
@@ -150,24 +150,29 @@ class DataCommand(Command):
             writer.writerows(records)
 
 
+class ScrollCommand(Command):
+    def run(self, *args, **kwargs):
+        pass
+
+
 class CommandFactory:
     @staticmethod
-    def create(driver: WebDriver, command_type: str):
+    def create(command_type: str):
         command_type = command_type.lower()
         if command_type == 'open':
-            return OpenCommand(driver)
+            return OpenCommand()
 
         if command_type == 'refresh_until_element_appears':
-            return RefreshUntilElementAppearsCommand(driver)
+            return RefreshUntilElementAppearsCommand()
 
         if command_type == 'wait':
-            return WaitCommand(driver)
+            return WaitCommand()
 
         if command_type == 'form':
-            return FormCommand(driver)
+            return FormCommand()
 
         if command_type == 'data':
-            return DataCommand(driver)
+            return DataCommand()
 
 
 class SameUrlException(Exception):
