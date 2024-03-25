@@ -62,7 +62,7 @@
       "type": "data",
       "args": {
         "pagination": {
-          "until": 0,
+          "until": 10,
           "links": {
             "parent": {
               "by": "css-selector",
