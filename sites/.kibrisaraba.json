@@ -1,7 +1,15 @@
 {
-  "browser": "chrome",
-  "driver_key": "kibrisaraba",
-  "quit": true,
+  "driver": {
+    "browser": {
+      "name": "chrome",
+      "options": {
+        "add_experimental_option": {
+          "detach": true
+        }
+      }
+    }
+
+  },
   "commands": [
     {
       "type": "open",
@@ -65,7 +73,7 @@
       "type": "data",
       "args": {
         "pagination": {
-          "until": 5,
+          "until": 2,
           "links": {
             "parent": {
               "by": "css-selector",

@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.webdriver import WebDriver
-from src.utils.utils import staticclass
+from src.utils import staticclass, singleton, get
 
 
 class Browser(ABC):
@@ -14,20 +14,34 @@ class Browser(ABC):
 
 
 class Chrome(Browser):
-    def __init__(self):
-        service = Service(ChromeDriverManager().install())
+    def __init__(self, options_list: dict | None = None):
+        if options_list is None:
+            options_list = {}
+
         options = webdriver.ChromeOptions()
-        options.add_experimental_option("detach", True)
-        self.driver = webdriver.Chrome(options=options, service=service)
+        for method_name, values in options_list.items():
+            method = getattr(options, method_name)
+            for key, value in values.items():
+                method(key, value)
+
+        self.driver = webdriver.Chrome(options=options, service= Service(ChromeDriverManager().install()))
 
     def get(self) -> WebDriver:
         return self.driver
 
 
 class Safari(Browser):
-    def __init__(self):
+    def __init__(self, options_list: dict | None = None):
+        if options_list is None:
+            options_list = {}
+
         options = webdriver.SafariOptions()
-        self.driver = webdriver.Chrome(options=options)
+        for method_name, values in options_list.items():
+            method = getattr(options, method_name)
+            for key, value in values.items():
+                method(key, value)
+
+        self.driver = webdriver.Safari(options=options)
 
     def get(self) -> WebDriver:
         return self.driver
@@ -36,67 +50,73 @@ class Safari(Browser):
 @staticclass
 class Factory:
     @staticmethod
-    def create(browser: str | None = None) -> WebDriver:
-        browser = browser if browser is not None else environ.get('BROWSER', 'chrome').lower()
-        if browser == 'safari':
-            return Safari().get()
+    def create(browser: dict | None = None) -> WebDriver:
+        if browser is None:
+            browser = {}
+
+        browser_name = str(get(browser, 'name', environ.get('BROWSER', 'chrome'))).lower()
+        options = get(browser, 'options')
+        if browser_name == 'safari':
+            return Safari(options).get()
         else:
-            return Chrome().get()
+            return Chrome(options).get()
 
 
-@staticclass
+@singleton
 class Driver:
-    drivers: dict[str, WebDriver] = {}
-    key: str = 'default'
     DEFAULT: str = 'default'
 
-    @staticmethod
-    def set_key(key: str = 'default') -> None:
-        Driver.key = key if key is not None else Driver.DEFAULT
+    def __init__(self):
+        self.drivers: dict[str, WebDriver] = {}
+        self.key: str = self.DEFAULT
 
-    @staticmethod
-    def get_driver_key() -> str:
-        return Driver.key
+    def set_key(self, key: str = 'default') -> None:
+        self.key = key if key is not None else self.DEFAULT
 
-    @staticmethod
-    def get_keys() -> list[str]:
-        return list(Driver.drivers.keys())
+    def get_driver_key(self) -> str:
+        return self.key
 
-    @staticmethod
-    def _choose_key(key: str | None) -> str:
+    def get_keys(self) -> list[str]:
+        return list(self.drivers.keys())
+
+    def _choose_key(self, key: str | None) -> str:
         if key is not None:
             return key
 
-        return Driver.key
+        return self.key
 
-    @staticmethod
-    def get(key: str | None = None) -> WebDriver:
-        key = Driver._choose_key(key)
-        if key in Driver.drivers:
-            return Driver.drivers[key]
+    def get(self, key: str | None = None) -> WebDriver:
+        key = self._choose_key(key)
+        if key in self.drivers:
+            return self.drivers[key]
 
         raise DriverKeyNotFoundException(f'{key} is not in the dictionary')
 
-    @staticmethod
-    def create(key: str | None = None, browser: str | None = None, force_new: bool = False) -> WebDriver:
-        key = Driver._choose_key(key)
-        driver = Factory.create(browser)
-        if force_new and key in Driver.drivers:
+    def create(self, **kwargs) -> WebDriver:
+        key = self._choose_key(kwargs.get('key'))
+        if kwargs.get('force_new', False) and key in self.drivers:
             DriverKeyAlreadyExistsException(f'{key} is already in dictionary')
-        Driver.drivers[key] = driver
 
-        return driver
+        web_driver = Factory.create(kwargs.get('browser'))
+        web_driver.set_window_size(
+            int(str(get(kwargs, 'size.width', environ.get('BROWSER_WIDTH', 1280)))),
+            int(str(get(kwargs, 'size.height', environ.get('BROWSER_HEIGHT', 720)))),
+        )
 
-    @staticmethod
-    def quit(key: str | None = None) -> None:
-        key = Driver._choose_key(key)
-        Driver.drivers.get(key).quit()
-        del Driver.drivers[key]
+        self.drivers[key] = web_driver
+        if kwargs.get('set_key', True):
+            self.key = key
 
-    @staticmethod
-    def quit_all() -> None:
-        for key in Driver.get_keys():
-            Driver.quit(key)
+        return web_driver
+
+    def quit(self, key: str | None = None) -> None:
+        key = self._choose_key(key)
+        self.drivers.get(key).quit()
+        del self.drivers[key]
+
+    def quit_all(self) -> None:
+        for key in self.get_keys():
+            self.quit(key)
 
 
 class DriverKeyNotFoundException(Exception):

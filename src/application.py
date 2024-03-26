@@ -1,18 +1,17 @@
-from src.driver.commands import CommandFactory
-from src.driver.driver import Driver
-from src.utils.sites import Sites
+from src.driver import CommandFactory, Driver, Reader
+from src.utils import staticclass, get
 
 
+@staticclass
 class Application:
-    def run(self):
-        for site in Sites.read():
-            Driver.set_key(site.get('driver_key'))
-            Driver.create(browser=site.get('browser', 'chrome'))
-            self.process(site.get('commands'))
-            if site.get('quit', False):
-                Driver.quit()
-        Driver.quit_all()
+    @staticmethod
+    def run():
+        for site in Reader.read():
+            Driver().create(**site.get('driver', {}))
+            for command in site.get('commands', []):
+                CommandFactory.create(command.get('type')).run(**command.get('args'))
 
-    def process(self, commands: []):
-        for command in commands:
-            CommandFactory.create(command.get('type')).run(**command.get('args'))
+            if get(site, 'driver.quit', False):
+                Driver().quit()
+
+        Driver().quit_all()

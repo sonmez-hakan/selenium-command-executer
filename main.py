@@ -2,8 +2,10 @@ import os
 import sys
 from dotenv import load_dotenv
 from src.application import Application
+from src.utils import staticclass
 
 
+@staticclass
 class Bootstrap:
     @staticmethod
     def load():
@@ -18,5 +20,4 @@ class Bootstrap:
 
 if __name__ == '__main__':
     Bootstrap.load()
-    app = Application()
-    app.run()
+    Application.run()
